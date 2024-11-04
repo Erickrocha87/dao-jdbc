@@ -17,8 +17,15 @@ public class Program2 {
         System.out.println("Enter department name: ");
         String name = sc.nextLine();
         Department dep = new Department(null, name);
-        
+
         departmentDao.insert(dep);
         System.out.println("Inserted! New id = " + dep.getId());
+
+
+        System.out.println("\n=== TEST 2: Department update ====\n");
+        dep.setName("testupdate");
+        departmentDao.update(dep);
+        System.out.println("Update completed");
+
     }   
 }

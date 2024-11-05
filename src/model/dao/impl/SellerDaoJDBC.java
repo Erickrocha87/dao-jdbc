@@ -1,13 +1,16 @@
 package model.dao.impl;
 
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 
 import db.DB;
 import db.DbExeception;
@@ -25,20 +28,83 @@ public class SellerDaoJDBC implements SellerDao {
 
     @Override
     public void insert(Seller obj) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'insert'");
+        PreparedStatement st = null;
+        try{
+            st = conn.prepareStatement(
+                "INSERT INTO seller "
+                + "(Name, Email, BirthDate, BaseSalary, DepartmentId) "
+                + "VALUES " 
+                + "(?, ?, ?, ?, ?)", java.sql.Statement.RETURN_GENERATED_KEYS);
+
+            st.setString(1,obj.getName());
+            st.setString(2, obj.getEmail());
+            st.setDate(3, new java.sql.Date(obj.getBithDate().getTime()));
+            st.setDouble( 4, obj.getBaseSalary());
+            st.setInt(5, obj.getDepartment().getId());
+
+            int rowsAffected = st.executeUpdate();
+            if (rowsAffected > 0 ) {
+                ResultSet rs = st.getGeneratedKeys();
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    obj.setId(id);
+                }
+                DB.closeResultSet(rs);
+            }else{
+                throw new DbExeception("Unexpected error! No rows affected!");
+            }
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }
+        finally{
+            DB.closeStatement(st);
+        }
     }
 
     @Override
     public void update(Seller obj) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'update'");
+        PreparedStatement st = null;
+        try{
+            st = conn.prepareStatement("UPDATE seller SET Name = ?, Email = ?,BirthDate = ?, BaseSalary = ?, DepartmentId = ? WHERE id = ? ");
+
+            st.setString(1, obj.getName());
+            st.setString(2, obj.getEmail());
+            st.setDate(3, new java.sql.Date(obj.getBithDate().getTime()));
+            st.setDouble(4, obj.getBaseSalary());
+            st.setInt(5, obj.getDepartment().getId());
+            st.setInt(6, obj
+            .getId());
+            
+            st.executeUpdate();
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }
+        finally{
+            DB.closeStatement(st);
+        }
+        
     }
 
     @Override
     public void deleteById(Integer id) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deleteById'");
+        PreparedStatement st = null;
+        try{
+            st = conn.prepareStatement("DELETE FROM seller WHERE Id = ?");
+            
+            st.setInt(1, id);
+            int rows = st.executeUpdate();
+            if (rows == 0) { //verifica se alguma linha da tabela foi afetada
+                throw new DbExeception("Id not exist");
+            }
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }
+        finally{
+            DB.closeStatement(st);
+        }
     }
 
     @Override
@@ -85,8 +151,35 @@ public class SellerDaoJDBC implements SellerDao {
 
     @Override
     public List<Seller> findAll() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'findAll'");
+        PreparedStatement st = null;
+        ResultSet rs = null;
+        try{
+            st
+             = conn.prepareStatement("SELECT seller.*, department.Name as DepName FROM seller INNER JOIN department ON seller.DepartmentId = department.Id ORDER BY Name  ");
+            
+            rs = st.executeQuery();
+
+            List<Seller> listSeller = new ArrayList<>();
+            Map<Integer, Department> map = new HashMap<>();
+            while (rs.next()) {
+                Department dep = map.get(rs.getInt("DepartmentId"));
+                if (dep == null) {
+                    dep = instantiateDepartment(rs);
+                    map.put(rs.getInt("DepartmentId"), dep);
+                }
+                Seller seller = instantiateSeller(rs, dep);
+                listSeller.add(seller);
+            }
+            return listSeller;
+
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }
+        finally{
+            DB.closeStatement(st);
+            DB.closeResultSet(rs);
+        }
     }
     // implementação da interface SellerDao em uma classe onde vai ser utilizado a
     // tecnologia JDBC

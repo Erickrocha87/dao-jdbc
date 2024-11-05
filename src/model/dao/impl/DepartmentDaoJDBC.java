@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 
 import db.DB;
@@ -75,20 +76,78 @@ public class DepartmentDaoJDBC implements DepartmentDao{
 
     @Override
     public void deleteById(Integer id) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'deleteById'");
+        PreparedStatement st = null;
+        try{
+
+            st = conn.prepareStatement("DELETE FROM department WHERE Id = ?");
+            st.setInt(1, id);
+            int rows = st.executeUpdate(); //verifica se a linha foi alterada, só vai ser alterada se o ID for encontrado
+            if (rows == 0) {
+                throw new DbExeception("This Id don't exist");
+            }
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }finally{
+            DB.closeStatement(st);
+        }
+        
     }
 
     @Override
     public Department findById(Integer id) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'findById'");
+        PreparedStatement st = null;
+        ResultSet rs = null;
+        try{
+            st = conn.prepareStatement("SELECT * FROM department WHERE Id = ?");
+            st.setInt(1, id);
+
+            rs = st.executeQuery();
+            if (rs.next()) {
+                Department dep = instantiateDepartment(rs);
+                return dep;
+            }
+            return null;
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }
+        finally{
+            DB.closeStatement(st);
+            DB.closeResultSet(rs);
+        }
     }
 
     @Override
     public List<Department> findAll() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'findAll'");
+
+        PreparedStatement st = null;
+        ResultSet rs = null;
+        List<Department> listDepartment = new ArrayList<>();
+        try{
+
+            st = conn.prepareStatement("SELECT * FROM department");
+            rs = st.executeQuery();
+            while (rs.next()) {
+                Department dep = instantiateDepartment(rs);
+                listDepartment.add(dep);
+            }
+            return listDepartment;
+        }
+        catch(SQLException e){
+            throw new DbExeception(e.getMessage());
+        }
+        finally{
+            DB.closeStatement(st);
+            DB.closeResultSet(rs);
+        }
+    }
+
+    private Department instantiateDepartment(ResultSet rs) throws SQLException {
+        Department dep = new Department();
+        dep.setId(rs.getInt("Id"));
+        dep.setName(rs.getString("Name"));
+        return dep;
     }
 
 }
